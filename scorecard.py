@@ -1,13 +1,12 @@
 class Scorecard:
-    def __init__(self):
-        # self.outs = 0
-        # # self.hits = 0
-        # self.errors = 0
-        # self.home_runs = 0
-        # self.visitor_runs = 0
-        # self.inning = 1
-        # self.inning_half = "top"
-        self.scorecard = []
+    def __init__(self, home_team, away_team):
+        self.home_team = home_team
+        self.away_team = away_team
+        self.inning = 1
+        self.inning_half = "Top"
+        self.outs = 0
+        self.strikes = 0
+        self.balls = 0
 
     def _batter(self):
         return input("Who is the batter? ")
@@ -34,11 +33,9 @@ class Scorecard:
             return self._record_runner_out(runner)
 
     def _record_batter_out(self, batter):
-        out_type = input("What type of out was it? (Strikeout(K), Groundout(G), Flyout(F), Fielder's Choice(FC), Double Play(DP), Triple Play(TP)) ")
+        out_type = input("What type of out was it? (Groundout(G), Flyout(F), Fielder's Choice(FC), Double Play(DP), Triple Play(TP)) ")
         out_description = ""
-        if out_type == "K":
-            out_description = batter + " strikes out."
-        elif out_type == "G":
+        if out_type == "G":
             out_description = batter + " grounds out."
         elif out_type == "F":
             out_description = batter + " flies out."
@@ -77,11 +74,20 @@ class Scorecard:
         run_description = run_scorer + " scores."
         return run_description
 
-    def record_play(self):
+    def _check_outs(self):
+        if self.outs == 3:
+            if self.inning_half == "Top":
+                self.inning_half = "Bottom"
+            elif self.inning_half == "Bottom":
+                self.inning_half = "Top"
+                self.inning += 1
+            self.outs = 0
+
+    def _record_play(self):
         hit_play = ""
-        outs = []
-        errors = []
-        runs = []
+        outs = [""]
+        errors = [""]
+        runs = [""]
 
         batter = self._batter()
 
@@ -105,17 +111,67 @@ class Scorecard:
             run = input("Did someone else score? Y/N ")
 
         play = ""
+        team = None
+        if self.inning_half == "Top":
+            team = self.away_team
+        elif self.inning_half == "Bottom":
+            team = self.home_team
+
+
         if hit == "Y":
             play += "\n" + hit_play
+            team.add_hit()
 
         for out in outs:
             play += "\n" + out
+            self.outs += 1
 
         for error in errors:
             play += "\n" + error
+            team.add_error()
 
         for run in runs:
             play += "\n" + run
+            team.add_run()
+        
+        self._check_outs()
 
+        state = input("Do you want to see the current game state? Y/N ")
+        if state == "Y":
+            play += "\n\n" + self.return_game_state()
 
         return play
+
+    def record_pitch(self):
+        pitch = input("What is the pitch result? (Strike/Foul(S), Ball(B), In Play(P)) ")
+
+        if pitch == "S":
+            self.strikes += 1
+            if self.strikes == 4:
+                self.strikes = 0
+                self.balls = 0
+                self.outs += 1
+                return "Strikeout!"
+            else:
+                return "Strike!"
+        elif pitch == "B":
+            self.balls += 1
+            if self.balls == 4:
+                self.strikes = 0
+                self.balls = 0
+                return "Walk!"
+            else:
+                return "Ball!"
+        elif pitch == "P":
+            self.strikes = 0
+            self.balls = 0
+            return self._record_play()
+
+    def return_game_state(self):
+        state = ""
+        state += "Inning: " + self.inning_half + " " + str(self.inning) + "\n"
+        state += "Outs: " + str(self.outs) + "\n"
+        state += "Strikes: " + str(self.strikes) + "\n"
+        state += "Balls: " + str(self.balls) + "\n"
+        state += "Score: " + "Home: " + str(self.home_team.runs) + " - " + "Away: " + str(self.away_team.runs)
+        return state
